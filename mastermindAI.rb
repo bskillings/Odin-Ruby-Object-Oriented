@@ -1,25 +1,23 @@
 class Mastermind
 
 	def initialize
-		@possible_colors = ["r", "o", "y", "g", "b", "p"]
 		@secret_colors = []
 		@game_won = false
-		@how_many_colors_in_code = 4
-		#should I make the creator and guesser instance so I can use them in puts?
 		begin_game
 	
 	end
 
 	def begin_game
 		who_guesses = designate_guesser
-		puts who_guesses
-		if who_guesses == "You"
-			computer_creates
-			print_introduction
+		if who_guesses == "g"
+			@player = Human.new
+			@creator = Computer.new
 		else
-			human_creates
+			@player = Computer.new
+			@creator = Human.new
 		end
-		play_game(who_guesses)
+		@secret_colors = @creator.create_code
+		play_game
 	end
 
 	def designate_guesser
@@ -27,29 +25,20 @@ class Mastermind
 		puts "Would you like to create the code or guess the code?"
 		puts "c = create, g = guess"
 		who_creates = gets.chomp
-		(who_creates == "c") ? "I" : "You"
-
 	end
 
-	def computer_creates
-		@how_many_colors_in_code.times do
-			color = rand(6)
-			@secret_colors.push(@possible_colors[color])
+	def play_game#change to if player.name
+		turn = 1
+		while @game_won == false && turn < 13
+			guess = @player.guess_code
+			compare_codes(guess)
+			turn += 1
 		end
-	end
-
-	def human_creates #maybe change later to accept other types of input like with spaces or one at a time
-		puts "Please enter your code like this: royg"
-		puts "r = red, o = orange y = yellow, g = green, b = blue, p = purple"
-		@secret_colors = gets.chomp.split("")
-	end
-
-	def print_introduction #prints rules
-		puts "I have a code made of four colors"
-		puts "You have 12 turns to guess my code"
-		puts "r = red, o = orange y = yellow, g = green, b = blue, p = purple"
-		#puts "testing"
-		#puts @secret_colors
+		if @game_won == true
+			puts "#{@player.name} win!  The code was #{@secret_colors.join}"
+		else 
+			puts "Too many guesses! #{@player.name} lose! The code was #{@secret_colors.join}"
+		end
 	end
 
 	def human_guess #gets input from player each turn
@@ -58,36 +47,6 @@ class Mastermind
 		guess_array = guess_input.split("")
 		return guess_array
 	end
-
-	#accounts for both situations I think
-
-	def play_game(guesser)
-		turn = 1
-		while @game_won == false && turn < 13
-			if guesser == "I"
-				guess = computer_guess
-			else
-				guess = human_guess
-			end
-			puts guess
-			compare_codes(guess)
-			turn += 1
-		end
-		if @game_won == true
-			puts "#{guesser} win!  The code was #{@secret_colors}"
-		else 
-			puts "Too many guesses! #{guesser} lose! The code was #{@secret_colors}"
-		end
-	end
-
-	def computer_guess
-		guess = []
-			@how_many_colors_in_code.times do
-				color = rand(6)
-				guess.push(@possible_colors[color])
-			end
-			return guess
-		end
 
 	def compare_codes(guess) #this is long but I use the results from perfect to do color to prevent duplicates
 		i = 0
@@ -117,10 +76,86 @@ class Mastermind
 				guess_color = "z"
 			end
 		end
-
-		puts "There are #{perfect_match} perfect matches and #{color_match} color matches."
+		if @player.is_a? Computer
+			@player.color_matches_from_previous_turn = perfect_match + color_match
+		end
+		puts "There are #{perfect_match} perfect matches and #{color_match} color matches. \n\n"
 		perfect_match = 0
 		color_match = 0
+	end
+
+end
+
+
+class Human
+
+	def initialize
+		@name = "You"
+	end
+
+	def create_code #maybe change later to accept other types of input like with spaces or one at a time
+		puts "Please enter your code like this: royg"
+		puts "r = red, o = orange y = yellow, g = green, b = blue, p = purple"
+		code = gets.chomp.split("")
+		puts code
+		return code
+	end
+
+	def guess_code #gets input from player each turn
+		puts "please choose four colors"
+		guess_input = gets.downcase.chomp.delete(" ")
+		guess_array = guess_input.split("")
+		return guess_array
+	end
+
+end
+
+class Computer
+
+	attr_accessor :color_matches_from_previous_turn
+	attr_accessor :name
+
+	def initialize
+		@name = "I"
+		@color_matches_from_previous_turn = 0
+		@color_index = 0
+		@possible_colors = ["r", "o", "y", "g", "b", "p"]
+		@last_guess = []
+		
+	end
+
+	def create_code
+		code = []
+		4.times do
+			color = rand(6)
+			code.push(@possible_colors[color])
+		end
+		puts "I have a code made of four colors"
+		puts "You have 12 turns to guess my code"
+		puts "r = red, o = orange y = yellow, g = green, b = blue, p = purple"
+		return code
+		
+	end
+
+	def guess_code #not working--gathering colors works but the shuffling part screwed it allup
+		
+		if @color_matches_from_previous_turn < 4 #make sure to get this
+			guess = @last_guess.dup
+			guess_index = @color_matches_from_previous_turn
+				
+			while @color_index < 6 && guess_index < 4#4 should be how many colors in code but I'll have to pass that in
+				guess[guess_index] = @possible_colors[@color_index]
+				guess_index += 1
+			end
+		else
+			interim_guess = @last_guess.dup
+			guess = interim_guess.shuffle
+		end
+
+		@last_guess = guess
+		@color_index += 1
+		puts "I guess #{guess.join}"
+		return guess
 	end
 
 end
